@@ -1,8 +1,8 @@
-<h1 align="center" style="margin-bottom: 0; border: none !important;">axio</h1>
+<h1 align="center" style="margin-bottom: 0;">axio</h1>
 
 <div align="right" style="margin-bottom: 1.5em">
 
-a [`std::io`][1]-like I/O traits for `no_std` environment.
+[`std::io`][1]-like I/O traits for `no_std` environment.
 
 </div>
 
