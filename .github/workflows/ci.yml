@@ -23,10 +23,12 @@ jobs:
           toolchain: ${{ matrix.rust-toolchain }}
           components: rust-src, clippy, rustfmt
           targets: ${{ matrix.targets }}
+          override: true
       - name: Check rust version
         run: rustc --version --verbose
       - name: Check code format
-        run: cargo fmt --all -- --check
+        run: |
+          cargo fmt --all -- --check
       - name: Clippy
         run: cargo clippy --target ${{ matrix.targets }} --all-features -- -A clippy::new_without_default
       - name: Build
