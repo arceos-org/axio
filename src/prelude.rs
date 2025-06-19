@@ -8,4 +8,5 @@
 //! use std::io::prelude::*;
 //! ```
 
+/// Re-exports commonly used I/O traits.
 pub use super::{BufRead, Read, Seek, Write};

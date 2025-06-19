@@ -1,4 +1,7 @@
 /target
-/.vscode
+.vscode
 .DS_Store
 Cargo.lock
+.idea
+*.json
+*.xml
