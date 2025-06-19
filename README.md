@@ -1,13 +1,27 @@
-# axio
+<h1 align="center">axio</h1>
 
 ---
 
-<div align="center">
+<div align="center" style="
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin: 1.2rem 0;
+">
 
 [![Crates.io](https://img.shields.io/crates/v/axio)](https://crates.io/crates/axio)
 [![Docs.rs](https://docs.rs/axio/badge.svg)](https://docs.rs/axio)
 [![CI](https://github.com/arceos-org/axio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arceos-org/axio/actions/workflows/ci.yml)
 [![DeepWiki](https://img.shields.io/badge/DeepWiki-docs-8A2BE2)](https://deepwiki.org/arceos-org/axio)
+[![Dependencies](https://img.shields.io/librariesio/release/cargo/axio)](https://libraries.io/cargo/axio)
+
+[![Downloads](https://img.shields.io/crates/d/axio)](https://crates.io/crates/axio)
+[![Code Size](https://img.shields.io/github/languages/code-size/arceos-org/axio)](https://github.com/arceos-org/axio)
+[![Activity](https://img.shields.io/github/commit-activity/m/arceos-org/axio)](https://github.com/arceos-org/axio/pulse)
+
+[![Toolchain](https://img.shields.io/badge/toolchain-nightly--2025--06--18-orange)](https://rust-lang.github.io/rustup/concepts/channels.html)
+[![License](https://img.shields.io/crates/l/axio)](https://github.com/arceos-org/axio/blob/main/LICENSE)
 
 </div>
 
@@ -20,19 +34,12 @@
 ## Example
 
 ```rust
-use axio::{BufReader, Read};
-use std::io::Write as StdWrite; // 导入标准库的Write trait
-
 fn main() {
+    use axio::{Read, BufReader};
+    
     let data = b"hello world";
     let mut reader = BufReader::new(&data[..]);
-
     let mut buf = [0u8; 5];
-    reader.read_exact(&mut buf).expect("读取失败");
-    println!("读取前5字节: {:?}", String::from_utf8_lossy(&buf));
-
-    let mut writer = Vec::new();
-    writer.write_all(b"test").expect("写入失败");
-    println!("写入内容: {:?}", writer);
+    reader.read_exact(&mut buf).unwrap();
 }
 ```
