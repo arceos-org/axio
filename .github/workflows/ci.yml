@@ -14,14 +14,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust-toolchain: [nightly]
         targets: [x86_64-unknown-linux-gnu, x86_64-unknown-none, riscv64gc-unknown-none-elf, aarch64-unknown-none-softfloat]
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.rust-toolchain }}
-          components: rust-src, clippy, rustfmt
+          toolchain: nightly
+          profile: minimal
+          components: rust-src, rustfmt, clippy
           targets: ${{ matrix.targets }}
           override: true
       - name: Check rust version
