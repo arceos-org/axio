@@ -1,4 +1,4 @@
-<h1 align="center">axio</h1>
+<h1 align="center" style="margin-bottom: 1.5em">axio</h1>
 
 ---
 
@@ -6,8 +6,8 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.6rem;
-    margin: 1.2rem 0;
+    gap: 0.2em;
+    margin: 0.2em 0;
 ">
 
 [![Crates.io](https://img.shields.io/crates/v/axio)](https://crates.io/crates/axio)
@@ -15,11 +15,10 @@
 [![CI](https://github.com/arceos-org/axio/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/arceos-org/axio/actions/workflows/ci.yml)
 [![DeepWiki](https://img.shields.io/badge/DeepWiki-docs-8A2BE2)](https://deepwiki.org/arceos-org/axio)
 [![Dependencies](https://img.shields.io/librariesio/release/cargo/axio)](https://libraries.io/cargo/axio)
-
 [![Downloads](https://img.shields.io/crates/d/axio)](https://crates.io/crates/axio)
 [![Code Size](https://img.shields.io/github/languages/code-size/arceos-org/axio)](https://github.com/arceos-org/axio)
-[![Activity](https://img.shields.io/github/commit-activity/m/arceos-org/axio)](https://github.com/arceos-org/axio/pulse)
 
+[![Activity](https://img.shields.io/github/commit-activity/m/arceos-org/axio)](https://github.com/arceos-org/axio/pulse)
 [![Toolchain](https://img.shields.io/badge/toolchain-nightly--2025--06--18-orange)](https://rust-lang.github.io/rustup/concepts/channels.html)
 [![License](https://img.shields.io/crates/l/axio)](https://github.com/arceos-org/axio/blob/main/LICENSE)
 
