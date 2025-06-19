@@ -1,4 +1,4 @@
-<h1 align="center" style="margin-bottom: 0; border: none">axio</h1>
+<h1 align="center" style="margin-bottom: 0; border: none !important;">axio</h1>
 
 <div align="right" style="margin-bottom: 1.5em">
 
