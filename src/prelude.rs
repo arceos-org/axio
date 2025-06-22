@@ -5,7 +5,7 @@
 //!
 //! ```
 //! # #![allow(unused_imports)]
-//! use std::io::prelude::*;
+//! use axio::prelude::*;
 //! ```
 
 /// Re-exports commonly used I/O traits.

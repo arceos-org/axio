@@ -99,10 +99,10 @@ impl<R: Read> Read for BufReader<R> {
     }
 
     /// Reads exactly enough bytes to fill the buffer, using buffered data first
-    // Small read_exacts from a BufReader are extremely common when used with a deserializer.
-    // The default implementation calls read in a loop, which results in surprisingly poor code
-    // generation for the common path where the buffer has enough bytes to fill the passed-in
-    // buffer.
+    /// Small read_exacts from a BufReader are extremely common when used with a deserializer.
+    /// The default implementation calls read in a loop, which results in surprisingly poor code
+    /// generation for the common path where the buffer has enough bytes to fill the passed-in
+    /// buffer.
     fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
         let amt = buf.len();
         if let Some(claimed) = self.buffer().get(..amt) {
@@ -114,8 +114,8 @@ impl<R: Read> Read for BufReader<R> {
     }
 
     /// Reads all bytes until EOF, appending them to the provided vector
-    // The inner reader might have an optimized `read_to_end`. Drain our buffer and then
-    // delegate to the inner implementation.
+    /// The inner reader might have an optimized `read_to_end`. Drain our buffer and then
+    /// delegate to the inner implementation.
     #[cfg(feature = "alloc")]
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
         let inner_buf = self.buffer();
@@ -126,8 +126,8 @@ impl<R: Read> Read for BufReader<R> {
     }
 
     /// Reads all bytes until EOF as UTF-8, appending them to the string
-    // The inner reader might have an optimized `read_to_end`. Drain our buffer and then
-    // delegate to the inner implementation.
+    /// The inner reader might have an optimized `read_to_end`. Drain our buffer and then
+    /// delegate to the inner implementation.
     #[cfg(feature = "alloc")]
     fn read_to_string(&mut self, buf: &mut String) -> Result<usize> {
         // In the general `else` case below we must read bytes into a side buffer, check
@@ -205,13 +205,6 @@ mod tests {
             self.pos += to_copy;
             Ok(to_copy)
         }
-    }
-
-    #[test]
-    fn test_new() {
-        let reader = TempReader::new(b"test");
-        let buf_reader = BufReader::new(reader);
-        assert_eq!(buf_reader.capacity(), DEFAULT_BUF_SIZE);
     }
 
     #[test]

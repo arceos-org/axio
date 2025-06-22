@@ -77,13 +77,13 @@ mod tests {
         let mut slice = &data[..];
         let mut buf = [0u8; 5];
 
-        // 测试正常读取
+        // test full read
         let res = slice.read(&mut buf).unwrap();
         assert_eq!(res, 5);
         assert_eq!(buf, *b"hello");
         assert!(slice.is_empty());
 
-        // 测试部分读取
+        // test partial read
         let data = b"world";
         let mut slice = &data[..];
         let mut buf = [0u8; 3];
@@ -92,7 +92,7 @@ mod tests {
         assert_eq!(buf, *b"wor");
         assert_eq!(slice, b"ld");
 
-        // 测试单字节读取优化
+        // test single-byte read optimization
         let data = b"x";
         let mut slice = &data[..];
         let mut buf = [0u8; 1];
@@ -101,7 +101,7 @@ mod tests {
         assert_eq!(buf[0], b'x');
         assert!(slice.is_empty());
 
-        // 测试空读取
+        // test empty read
         let mut empty_reader = &b""[..];
         assert_eq!(empty_reader.read(&mut buf).unwrap(), 0);
     }
@@ -112,15 +112,15 @@ mod tests {
         let mut reader = &data[..];
         let mut buf = [0u8; 5];
 
-        // 第一次读取
+        // test full read
         assert_eq!(reader.read(&mut buf).unwrap(), 5);
         assert_eq!(&buf, b"hello");
 
-        // 第二次读取
+        // test partial read
         assert_eq!(reader.read(&mut buf).unwrap(), 5);
         assert_eq!(&buf, b" worl");
 
-        // 最后读取
+        // test single-byte read
         let mut small_buf = [0u8; 1];
         assert_eq!(reader.read(&mut small_buf).unwrap(), 1);
         assert_eq!(&small_buf, b"d");
@@ -132,19 +132,19 @@ mod tests {
         let mut slice = &data[..];
         let mut buf = [0u8; 4];
 
-        // 测试精确读取
+        // test exact read
         slice.read_exact(&mut buf).unwrap();
         assert_eq!(buf, *b"heke");
         assert!(slice.is_empty());
 
-        // 测试数据不足
+        // test insufficient data
         let mut slice = &data[..];
         let mut buf = [0u8; 5];
         let res = slice.read_exact(&mut buf);
         assert!(res.is_err());
         assert_eq!(slice, b"heke");
 
-        // 测试单字节精确读取
+        // test single-byte exact read
         let data = b"x";
         let mut slice = &data[..];
         let mut buf = [0u8; 1];
@@ -161,13 +161,13 @@ mod tests {
         let mut slice = &data[..];
         let mut buf = Vec::new();
 
-        // 测试读取全部数据
+        // test read all data
         let res = slice.read_to_end(&mut buf).unwrap();
         assert_eq!(res, 4);
         assert_eq!(buf, b"test");
         assert!(slice.is_empty());
 
-        // 测试空读取
+        // test empty read
         let mut empty_reader = &b""[..];
         let mut empty_buf = Vec::new();
         assert_eq!(empty_reader.read_to_end(&mut empty_buf).unwrap(), 0);

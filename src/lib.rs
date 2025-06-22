@@ -399,19 +399,19 @@ mod tests {
     use super::*;
     use crate::Result;
 
-    // 测试Read trait的基本功能
+    // test Read trait
     #[test]
     fn test_read_trait() {
         let data = b"hello";
         let mut slice = &data[..];
         let mut buf = [0u8; 5];
 
-        // 测试正常读取
+        // test full read
         assert_eq!(slice.read(&mut buf).unwrap(), 5);
         assert_eq!(buf, *b"hello");
         assert!(slice.is_empty());
 
-        // 测试部分读取
+        // test partial read
         let data = b"world";
         let mut slice = &data[..];
         let mut buf = [0u8; 3];
@@ -420,25 +420,23 @@ mod tests {
         assert_eq!(slice, b"ld");
     }
 
-    // 测试read_exact方法
     #[test]
     fn test_read_exact() {
         let data = b"test";
         let mut slice = &data[..];
         let mut buf = [0u8; 4];
 
-        // 测试精确读取
+        // test exact read
         slice.read_exact(&mut buf).unwrap();
         assert_eq!(buf, *b"test");
         assert!(slice.is_empty());
 
-        // 测试数据不足情况
+        // test insufficient data
         let mut slice = &data[..];
         let mut buf = [0u8; 5];
         assert!(slice.read_exact(&mut buf).is_err());
     }
 
-    // 测试Write trait
     #[test]
     fn test_write_trait() {
         struct TestWriter {
@@ -465,12 +463,11 @@ mod tests {
             pos: 0,
         };
 
-        // 测试单次写入
+        // test single write
         assert_eq!(writer.write(b"hello").unwrap(), 5);
         assert_eq!(&writer.buf[..5], b"hello");
     }
 
-    // 测试PollState结构体
     #[test]
     fn test_poll_state() {
         let state = PollState {

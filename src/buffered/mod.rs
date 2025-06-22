@@ -2,7 +2,7 @@
 //!
 //! ```
 //! # #![allow(unused_imports)]
-//! use std::io::BufReader;
+//! use axio::BufReader;
 //! ```
 
 mod bufreader;

@@ -20,4 +20,4 @@ alloc = []
 default = []
 
 [dependencies]
-axerrno = { version = "0.1.0" }
+axerrno = { version = "0.1" }
