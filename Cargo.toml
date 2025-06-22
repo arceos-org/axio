@@ -2,7 +2,6 @@
 name = "axio"
 version = "0.1.2"
 edition = "2021"
-rust-version = "1.87.0"
 authors = [
     "Yuekai Jia <equation618@gmail.com>",
     "Leo Cheng <chengkelfan@qq.com>",
