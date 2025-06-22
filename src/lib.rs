@@ -1,4 +1,16 @@
 //! [`std::io`]-like I/O traits for `no_std` environment.
+//!
+//! # Examples
+//!
+//! Basic usage with byte slices:
+//! ```
+//! use axio::{Read, BufReader};
+//!
+//! let data = b"hello world";
+//! let mut reader = BufReader::new(&data[..]);
+//! let mut buf = [0u8; 5];
+//! reader.read_exact(&mut buf).unwrap();
+//! ```
 
 #![cfg_attr(not(doc), no_std)]
 #![feature(doc_auto_cfg)]
@@ -13,9 +25,13 @@ mod buffered;
 mod error;
 mod impls;
 
+/// Re-export of commonly used I/O traits and types
 pub mod prelude;
 
+/// A buffered reader that reads from another reader
 pub use self::buffered::BufReader;
+
+/// Standard error and result types for I/O operations
 pub use self::error::{Error, Result};
 
 #[cfg(feature = "alloc")]
@@ -376,4 +392,90 @@ pub struct PollState {
     pub readable: bool,
     /// Object can be writen now.
     pub writable: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Result;
+
+    // test Read trait
+    #[test]
+    fn test_read_trait() {
+        let data = b"hello";
+        let mut slice = &data[..];
+        let mut buf = [0u8; 5];
+
+        // test full read
+        assert_eq!(slice.read(&mut buf).unwrap(), 5);
+        assert_eq!(buf, *b"hello");
+        assert!(slice.is_empty());
+
+        // test partial read
+        let data = b"world";
+        let mut slice = &data[..];
+        let mut buf = [0u8; 3];
+        assert_eq!(slice.read(&mut buf).unwrap(), 3);
+        assert_eq!(buf, *b"wor");
+        assert_eq!(slice, b"ld");
+    }
+
+    #[test]
+    fn test_read_exact() {
+        let data = b"test";
+        let mut slice = &data[..];
+        let mut buf = [0u8; 4];
+
+        // test exact read
+        slice.read_exact(&mut buf).unwrap();
+        assert_eq!(buf, *b"test");
+        assert!(slice.is_empty());
+
+        // test insufficient data
+        let mut slice = &data[..];
+        let mut buf = [0u8; 5];
+        assert!(slice.read_exact(&mut buf).is_err());
+    }
+
+    #[test]
+    fn test_write_trait() {
+        struct TestWriter {
+            buf: [u8; 10],
+            pos: usize,
+        }
+
+        impl Write for TestWriter {
+            fn write(&mut self, buf: &[u8]) -> Result<usize> {
+                let remaining = self.buf.len() - self.pos;
+                let to_write = buf.len().min(remaining);
+                self.buf[self.pos..self.pos + to_write].copy_from_slice(&buf[..to_write]);
+                self.pos += to_write;
+                Ok(to_write)
+            }
+
+            fn flush(&mut self) -> Result {
+                Ok(())
+            }
+        }
+
+        let mut writer = TestWriter {
+            buf: [0; 10],
+            pos: 0,
+        };
+
+        // test single write
+        assert_eq!(writer.write(b"hello").unwrap(), 5);
+        assert_eq!(&writer.buf[..5], b"hello");
+    }
+
+    #[test]
+    fn test_poll_state() {
+        let state = PollState {
+            readable: true,
+            writable: false,
+        };
+
+        assert!(state.readable);
+        assert!(!state.writable);
+    }
 }

@@ -3,6 +3,7 @@ use crate::{BufRead, Read, Result};
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
 
+/// Default buffer size used by `BufReader` (1 KB)
 const DEFAULT_BUF_SIZE: usize = 1024;
 
 /// The `BufReader<R>` struct adds buffering to any reader.
@@ -15,6 +16,19 @@ pub struct BufReader<R> {
 
 impl<R: Read> BufReader<R> {
     /// Creates a new `BufReader<R>` with a default buffer capacity (1 KB).
+    ///
+    /// # Examples
+    /// ```
+    /// use axio::BufReader;
+    /// use axio::Read;
+    ///
+    /// fn example() -> impl Read {
+    ///     "test".as_bytes()
+    /// }
+    ///
+    /// let reader = example();
+    /// let buf_reader = BufReader::new(reader);
+    /// ```
     pub const fn new(inner: R) -> BufReader<R> {
         Self {
             inner,
@@ -66,6 +80,8 @@ impl<R> BufReader<R> {
 }
 
 impl<R: Read> Read for BufReader<R> {
+    /// Reads data into the provided buffer, using the internal buffer to
+    /// minimize direct reads from the underlying reader
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
         // If we don't have any buffered data and we're doing a massive read
         // (larger than our internal buffer), bypass our internal buffer
@@ -82,10 +98,11 @@ impl<R: Read> Read for BufReader<R> {
         Ok(nread)
     }
 
-    // Small read_exacts from a BufReader are extremely common when used with a deserializer.
-    // The default implementation calls read in a loop, which results in surprisingly poor code
-    // generation for the common path where the buffer has enough bytes to fill the passed-in
-    // buffer.
+    /// Reads exactly enough bytes to fill the buffer, using buffered data first
+    /// Small read_exacts from a BufReader are extremely common when used with a deserializer.
+    /// The default implementation calls read in a loop, which results in surprisingly poor code
+    /// generation for the common path where the buffer has enough bytes to fill the passed-in
+    /// buffer.
     fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
         let amt = buf.len();
         if let Some(claimed) = self.buffer().get(..amt) {
@@ -96,8 +113,9 @@ impl<R: Read> Read for BufReader<R> {
         self.inner.read_exact(buf)
     }
 
-    // The inner reader might have an optimized `read_to_end`. Drain our buffer and then
-    // delegate to the inner implementation.
+    /// Reads all bytes until EOF, appending them to the provided vector
+    /// The inner reader might have an optimized `read_to_end`. Drain our buffer and then
+    /// delegate to the inner implementation.
     #[cfg(feature = "alloc")]
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize> {
         let inner_buf = self.buffer();
@@ -107,8 +125,9 @@ impl<R: Read> Read for BufReader<R> {
         Ok(nread + self.inner.read_to_end(buf)?)
     }
 
-    // The inner reader might have an optimized `read_to_end`. Drain our buffer and then
-    // delegate to the inner implementation.
+    /// Reads all bytes until EOF as UTF-8, appending them to the string
+    /// The inner reader might have an optimized `read_to_end`. Drain our buffer and then
+    /// delegate to the inner implementation.
     #[cfg(feature = "alloc")]
     fn read_to_string(&mut self, buf: &mut String) -> Result<usize> {
         // In the general `else` case below we must read bytes into a side buffer, check
@@ -143,6 +162,7 @@ impl<R: Read> Read for BufReader<R> {
 }
 
 impl<R: Read> BufRead for BufReader<R> {
+    /// Fills the internal buffer if empty and returns its contents
     fn fill_buf(&mut self) -> Result<&[u8]> {
         if self.is_empty() {
             let read_len = self.inner.read(&mut self.buf)?;
@@ -152,7 +172,190 @@ impl<R: Read> BufRead for BufReader<R> {
         Ok(self.buffer())
     }
 
+    /// Consumes the specified number of bytes from the buffer
     fn consume(&mut self, amt: usize) {
         self.pos = core::cmp::min(self.pos + amt, self.filled);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Result;
+
+    struct TempReader {
+        data: &'static [u8],
+        pos: usize,
+    }
+
+    impl TempReader {
+        fn new(data: &'static [u8]) -> Self {
+            Self { data, pos: 0 }
+        }
+    }
+
+    impl Read for TempReader {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+            let remaining = self.data.len() - self.pos;
+            if remaining == 0 {
+                return Ok(0);
+            }
+            let to_copy = core::cmp::min(buf.len(), remaining);
+            buf[..to_copy].copy_from_slice(&self.data[self.pos..self.pos + to_copy]);
+            self.pos += to_copy;
+            Ok(to_copy)
+        }
+    }
+
+    #[test]
+    fn test_get_ref() {
+        let reader = TempReader::new(b"test");
+        let buf_reader = BufReader::new(reader);
+        assert_eq!(buf_reader.get_ref().data, b"test");
+    }
+
+    #[test]
+    fn test_get_mut() {
+        let reader = TempReader::new(b"test");
+        let mut buf_reader = BufReader::new(reader);
+        assert_eq!(buf_reader.get_mut().data, b"test");
+    }
+
+    #[test]
+    fn test_buffer_empty() {
+        let reader = TempReader::new(b"");
+        let buf_reader = BufReader::new(reader);
+        assert!(buf_reader.buffer().is_empty());
+    }
+
+    #[test]
+    fn test_into_inner() {
+        let reader = TempReader::new(b"test");
+        let buf_reader = BufReader::new(reader);
+        let inner = buf_reader.into_inner();
+        assert_eq!(inner.data, b"test");
+    }
+
+    #[test]
+    fn test_read_small() {
+        let reader = TempReader::new(b"hello world");
+        let mut buf_reader = BufReader::new(reader);
+
+        let mut buf = [0; 5];
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), 5);
+        assert_eq!(&buf, b"hello");
+
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), 5);
+        assert_eq!(&buf, b" worl");
+
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), 1);
+        assert_eq!(&buf[..1], b"d");
+
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_read_large() {
+        const DATA: &'static [u8] = &[1u8; DEFAULT_BUF_SIZE * 2];
+        let reader = TempReader::new(DATA);
+        let mut buf_reader = BufReader::new(reader);
+
+        let mut buf = [0u8; DEFAULT_BUF_SIZE * 2];
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), DEFAULT_BUF_SIZE * 2);
+        assert_eq!(&buf, DATA);
+    }
+
+    #[test]
+    fn test_read_exact() {
+        let reader = TempReader::new(b"hello world");
+        let mut buf_reader = BufReader::new(reader);
+
+        let mut buf = [0; 5];
+        buf_reader.read_exact(&mut buf).unwrap();
+        assert_eq!(&buf, b"hello");
+
+        buf_reader.read_exact(&mut buf).unwrap();
+        assert_eq!(&buf, b" worl");
+
+        let mut buf2 = [0; 1];
+        buf_reader.read_exact(&mut buf2).unwrap();
+        assert_eq!(&buf2, b"d");
+
+        let mut buf3 = [0; 1];
+        assert!(buf_reader.read_exact(&mut buf3).is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn test_read_to_end() {
+        let reader = TempReader::new(b"hello world");
+        let mut buf_reader = BufReader::new(reader);
+
+        let mut buf = Vec::new();
+        assert_eq!(buf_reader.read_to_end(&mut buf).unwrap(), 11);
+        assert_eq!(buf, b"hello world");
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn test_read_to_string() {
+        let reader = TempReader::new(b"hello world");
+        let mut buf_reader = BufReader::new(reader);
+
+        let mut buf = String::new();
+        assert_eq!(buf_reader.read_to_string(&mut buf).unwrap(), 11);
+        assert_eq!(buf, "hello world");
+    }
+
+    #[test]
+    fn test_fill_buf() {
+        let reader = TempReader::new(b"hello world");
+        let mut buf_reader = BufReader::new(reader);
+
+        let buf = buf_reader.fill_buf().unwrap();
+        assert_eq!(buf, b"hello world");
+
+        buf_reader.consume(5);
+        let buf = buf_reader.fill_buf().unwrap();
+        assert_eq!(buf, b" world");
+    }
+
+    #[test]
+    fn test_consume() {
+        let reader = TempReader::new(b"hello world");
+        let mut buf_reader = BufReader::new(reader);
+
+        buf_reader.fill_buf().unwrap();
+        assert_eq!(buf_reader.buffer(), b"hello world");
+
+        buf_reader.consume(5);
+        assert_eq!(buf_reader.buffer(), b" world");
+
+        buf_reader.consume(6);
+        assert!(buf_reader.buffer().is_empty());
+    }
+
+    #[test]
+    fn test_edge_cases() {
+        // Empty reader
+        let reader = TempReader::new(b"");
+        let mut buf_reader = BufReader::new(reader);
+        let mut buf = [0; 1];
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), 0);
+
+        // Single byte
+        let reader = TempReader::new(b"x");
+        let mut buf_reader = BufReader::new(reader);
+        let mut buf = [0; 1];
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), 1);
+        assert_eq!(buf[0], b'x');
+
+        // Exact buffer size
+        const DATA: &'static [u8] = &[1u8; DEFAULT_BUF_SIZE];
+        let reader = TempReader::new(DATA);
+        let mut buf_reader = BufReader::new(reader);
+        let mut buf = [0u8; DEFAULT_BUF_SIZE];
+        assert_eq!(buf_reader.read(&mut buf).unwrap(), DEFAULT_BUF_SIZE);
+        assert_eq!(&buf, DATA);
     }
 }

@@ -1,8 +1,11 @@
 [package]
 name = "axio"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
-authors = ["Yuekai Jia <equation618@gmail.com>"]
+authors = [
+    "Yuekai Jia <equation618@gmail.com>",
+    "Leo Cheng <chengkelfan@qq.com>",
+]
 description = "`std::io`-like I/O traits for `no_std` environment"
 license = "GPL-3.0-or-later OR Apache-2.0 OR MulanPSL-2.0"
 homepage = "https://github.com/arceos-org/arceos"
@@ -16,4 +19,4 @@ alloc = []
 default = []
 
 [dependencies]
-axerrno = "0.1"
+axerrno = { version = "0.1" }
