@@ -1,6 +1,6 @@
 //! Implementation of core I/O traits for basic types
 
-use crate::{Result, prelude::*};
+use crate::{prelude::*, Result};
 use core::cmp;
 
 /// Implementation of Read trait for byte slices (&[u8])
