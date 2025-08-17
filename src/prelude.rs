@@ -3,7 +3,7 @@
 //! The purpose of this module is to alleviate imports of many common I/O traits
 //! by adding a glob import to the top of I/O heavy modules:
 //!
-//! ```
+//! ```no_run
 //! # #![allow(unused_imports)]
 //! use std::io::prelude::*;
 //! ```

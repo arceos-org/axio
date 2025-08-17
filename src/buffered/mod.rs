@@ -1,3 +1,3 @@
-mod bufreader;
+mod reader;
 
-pub use self::bufreader::BufReader;
+pub use self::reader::BufReader;

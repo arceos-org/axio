@@ -10,19 +10,23 @@ extern crate alloc;
 
 use core::fmt;
 
+mod buf;
 mod buffered;
 mod error;
 mod impls;
-
 pub mod prelude;
 
-pub use self::buffered::BufReader;
-pub use self::error::{Error, Result};
+pub use self::{
+    buf::{Buf, BufMut},
+    buffered::BufReader,
+    error::{Error, Result},
+};
 
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
+use axerrno::ax_bail;
 
-use axerrno::ax_err;
+const DEFAULT_BUF_SIZE: usize = 1024;
 
 /// Default [`Read::read_to_end`] implementation with optional size hint.
 ///
@@ -36,8 +40,6 @@ pub fn default_read_to_end<R: Read + ?Sized>(
     size_hint: Option<usize>,
 ) -> Result<usize> {
     use core::io::BorrowedBuf;
-
-    const DEFAULT_BUF_SIZE: usize = 1024;
 
     let start_len = buf.len();
     let start_cap = buf.capacity();
@@ -89,7 +91,7 @@ pub fn default_read_to_end<R: Read + ?Sized>(
         if buf.len() == buf.capacity() {
             // buf is full, need more space
             if let Err(e) = buf.try_reserve(PROBE_SIZE) {
-                return ax_err!(NoMemory, e);
+                ax_bail!(NoMemory, e);
             }
         }
 
@@ -204,7 +206,7 @@ pub trait Read {
             }
         }
         if !buf.is_empty() {
-            ax_err!(UnexpectedEof, "failed to fill whole buffer")
+            ax_bail!(Io, "failed to read whole buffer");
         } else {
             Ok(())
         }
@@ -224,7 +226,7 @@ pub trait Write {
     fn write_all(&mut self, mut buf: &[u8]) -> Result {
         while !buf.is_empty() {
             match self.write(buf) {
-                Ok(0) => return ax_err!(WriteZero, "failed to write whole buffer"),
+                Ok(0) => ax_bail!(Io, "failed to write whole buffer"),
                 Ok(n) => buf = &buf[n..],
                 Err(e) => return Err(e),
             }
@@ -265,7 +267,7 @@ pub trait Write {
                 if output.error.is_err() {
                     output.error
                 } else {
-                    ax_err!(InvalidData, "formatter error")
+                    ax_bail!(InvalidData, "formatter error")
                 }
             }
         }
@@ -387,12 +389,13 @@ where
     let buf = unsafe { buf.as_mut_vec() };
     let ret = f(buf)?;
     if core::str::from_utf8(&buf[old_len..]).is_err() {
-        ax_err!(InvalidData, "stream did not contain valid UTF-8")
+        ax_bail!(InvalidData, "invalid UTF-8 sequence in stream")
     } else {
         Ok(ret)
     }
 }
 
+// FIXME: This is reserved for smooth migration of ArceOS.
 /// I/O poll results.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PollState {

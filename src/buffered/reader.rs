@@ -1,3 +1,5 @@
+use core::mem::MaybeUninit;
+
 use crate::{BufRead, Read, Result};
 
 #[cfg(feature = "alloc")]
@@ -10,7 +12,7 @@ pub struct BufReader<R> {
     inner: R,
     pos: usize,
     filled: usize,
-    buf: [u8; DEFAULT_BUF_SIZE],
+    buf: [MaybeUninit<u8>; DEFAULT_BUF_SIZE],
 }
 
 impl<R: Read> BufReader<R> {
@@ -20,7 +22,7 @@ impl<R: Read> BufReader<R> {
             inner,
             pos: 0,
             filled: 0,
-            buf: [0; DEFAULT_BUF_SIZE],
+            buf: [const { MaybeUninit::uninit() }; DEFAULT_BUF_SIZE],
         }
     }
 }
@@ -42,7 +44,7 @@ impl<R> BufReader<R> {
     ///
     /// [`fill_buf`]: BufRead::fill_buf
     pub fn buffer(&self) -> &[u8] {
-        &self.buf[self.pos..self.filled]
+        unsafe { self.buf[self.pos..self.filled].assume_init_ref() }
     }
 
     /// Returns the number of bytes the internal buffer can hold at once.
@@ -131,10 +133,11 @@ impl<R: Read> Read for BufReader<R> {
             // be an incomplete UTF-8 sequence that has only been partially read. We must read
             // everything into a side buffer first and then call `from_utf8` on the complete
             // buffer.
+
             let mut bytes = Vec::new();
             self.read_to_end(&mut bytes)?;
             let string = core::str::from_utf8(&bytes).map_err(|_| {
-                axerrno::ax_err_type!(InvalidData, "stream did not contain valid UTF-8")
+                axerrno::ax_err_type!(InvalidData, "invalid UTF-8 sequence in stream")
             })?;
             *buf += string;
             Ok(string.len())
@@ -145,7 +148,7 @@ impl<R: Read> Read for BufReader<R> {
 impl<R: Read> BufRead for BufReader<R> {
     fn fill_buf(&mut self) -> Result<&[u8]> {
         if self.is_empty() {
-            let read_len = self.inner.read(&mut self.buf)?;
+            let read_len = self.inner.read(unsafe { self.buf.assume_init_mut() })?;
             self.pos = 0;
             self.filled = read_len;
         }

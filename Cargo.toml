@@ -13,10 +13,10 @@ categories = ["no-std"]
 
 [features]
 alloc = []
-default = []
+default = ["alloc"]
 
 [dependencies]
-axerrno = "0.1"
+axerrno = "0.2"
 
 [build-dependencies]
 autocfg = "1"
