@@ -1,6 +1,6 @@
 [package]
 name = "axio"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 authors = ["Yuekai Jia <equation618@gmail.com>"]
 description = "`std::io`-like I/O traits for `no_std` environment"
@@ -12,8 +12,9 @@ keywords = ["arceos", "io", "no-std"]
 categories = ["no-std"]
 
 [features]
-alloc = []
 default = []
+alloc = []
 
 [dependencies]
-axerrno = "0.1"
+axerrno = "0.2"
+memchr = { version = "2", default-features = false }
