@@ -1,12 +1,12 @@
 //! [`std::io`] for `no_std` environment.
 
 #![cfg_attr(not(doc), no_std)]
-#![feature(doc_auto_cfg)]
+#![feature(doc_cfg)]
 #![feature(core_io_borrowed_buf)]
 #![feature(maybe_uninit_fill)]
-#![feature(maybe_uninit_slice)]
+#![cfg_attr(nightly_old, feature(maybe_uninit_slice))]
 #![feature(min_specialization)]
-#![feature(unsigned_signed_diff)]
+#![cfg_attr(nightly_old, feature(unsigned_signed_diff))]
 #![warn(missing_docs)]
 
 #[cfg(feature = "alloc")]

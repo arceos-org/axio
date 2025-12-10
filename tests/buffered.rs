@@ -952,6 +952,7 @@ fn single_formatted_write() {
     );
 }
 
+#[cfg(nightly_old)]
 #[test]
 fn bufreader_full_initialize() {
     struct OneByteReader;

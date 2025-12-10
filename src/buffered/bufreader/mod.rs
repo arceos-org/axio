@@ -65,6 +65,7 @@ impl<R: ?Sized> BufReader<R> {
         self.buf.capacity()
     }
 
+    #[cfg(nightly_old)]
     #[doc(hidden)]
     pub fn initialized(&self) -> usize {
         self.buf.initialized()

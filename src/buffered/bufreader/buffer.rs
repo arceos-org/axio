@@ -17,6 +17,7 @@ pub struct Buffer {
     // Each call to `fill_buf` sets `filled` to indicate how many bytes at the start of `buf` are
     // initialized with bytes from a read.
     filled: usize,
+    #[cfg(nightly_old)]
     // This is the max number of bytes returned across all `fill_buf` calls. We track this so that we
     // can accurately tell `read_buf` how many bytes of buf are initialized, to bypass as much of its
     // defensive initialization as possible. Note that while this often the same as `filled`, it
@@ -37,6 +38,7 @@ impl Buffer {
             buf: [const { MaybeUninit::uninit() }; DEFAULT_BUF_SIZE],
             pos: 0,
             filled: 0,
+            #[cfg(nightly_old)]
             initialized: 0,
         }
     }
@@ -49,6 +51,7 @@ impl Buffer {
             buf,
             pos: 0,
             filled: 0,
+            #[cfg(nightly_old)]
             initialized: 0,
         }
     }
@@ -79,6 +82,8 @@ impl Buffer {
         self.pos
     }
 
+    #[cfg(nightly_old)]
+    #[inline]
     pub fn initialized(&self) -> usize {
         self.initialized
     }
@@ -119,13 +124,18 @@ impl Buffer {
     /// Read more bytes into the buffer without discarding any of its contents
     pub fn read_more(&mut self, mut reader: impl Read) -> Result<usize> {
         let mut buf = BorrowedBuf::from(&mut self.buf[self.filled..]);
+        #[cfg(nightly_old)]
         let old_init = self.initialized - self.filled;
+        #[cfg(nightly_old)]
         unsafe {
             buf.set_init(old_init);
         }
         reader.read_buf(buf.unfilled())?;
         self.filled += buf.len();
-        self.initialized += buf.init_len() - old_init;
+        #[cfg(nightly_old)]
+        {
+            self.initialized += buf.init_len() - old_init;
+        }
         Ok(buf.len())
     }
 
@@ -149,6 +159,7 @@ impl Buffer {
             let mut buf = BorrowedBuf::from(&mut *self.buf);
             #[cfg(not(feature = "alloc"))]
             let mut buf = BorrowedBuf::from(self.buf.as_mut_slice());
+            #[cfg(nightly_old)]
             // SAFETY: `self.filled` bytes will always have been initialized.
             unsafe {
                 buf.set_init(self.initialized);
@@ -158,7 +169,10 @@ impl Buffer {
 
             self.pos = 0;
             self.filled = buf.len();
-            self.initialized = buf.init_len();
+            #[cfg(nightly_old)]
+            {
+                self.initialized = buf.init_len();
+            }
 
             result?;
         }

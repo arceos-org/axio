@@ -97,6 +97,7 @@ impl<T: Read> Read for Take<T> {
             // The condition above guarantees that `self.limit` fits in `usize`.
             let limit = self.limit as usize;
 
+            #[cfg(nightly_old)]
             let extra_init = cmp::min(limit, buf.init_ref().len());
 
             // SAFETY: no uninit data is written to ibuf
@@ -104,6 +105,7 @@ impl<T: Read> Read for Take<T> {
 
             let mut sliced_buf: BorrowedBuf<'_> = ibuf.into();
 
+            #[cfg(nightly_old)]
             // SAFETY: extra_init bytes of ibuf are known to be initialized
             unsafe {
                 sliced_buf.set_init(extra_init);
@@ -112,16 +114,23 @@ impl<T: Read> Read for Take<T> {
             let mut cursor = sliced_buf.unfilled();
             let result = self.inner.read_buf(cursor.reborrow());
 
+            #[cfg(nightly_old)]
             let new_init = cursor.init_ref().len();
             let filled = sliced_buf.len();
 
             // cursor / sliced_buf / ibuf must drop here
 
+            #[cfg(nightly_old)]
             unsafe {
                 // SAFETY: filled bytes have been filled and therefore initialized
                 buf.advance_unchecked(filled);
                 // SAFETY: new_init bytes of buf's unfilled buffer have been initialized
                 buf.set_init(new_init);
+            }
+            #[cfg(not(nightly_old))]
+            // SAFETY: filled bytes have been filled and therefore initialized
+            unsafe {
+                buf.advance(filled);
             }
 
             self.limit -= filled as u64;

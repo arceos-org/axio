@@ -33,8 +33,21 @@ pub fn default_read_buf<F>(read: F, mut cursor: BorrowedCursor<'_>) -> Result<()
 where
     F: FnOnce(&mut [u8]) -> Result<usize>,
 {
-    let n = read(cursor.ensure_init().init_mut())?;
-    cursor.advance(n);
+    #[cfg(nightly_old)]
+    {
+        let n = read(cursor.ensure_init().init_mut())?;
+        cursor.advance(n);
+    }
+    #[cfg(not(nightly_old))]
+    {
+        // SAFETY: We do not uninitialize any part of the buffer.
+        let n = read(unsafe { cursor.as_mut().write_filled(0) })?;
+        assert!(n <= cursor.capacity());
+        // SAFETY: We've initialized the entire buffer, and `read` can't make it uninitialized.
+        unsafe {
+            cursor.advance(n);
+        }
+    }
     Ok(())
 }
 
@@ -108,7 +121,9 @@ pub fn default_read_to_end<R: Read + ?Sized>(
         }
     }
 
+    #[cfg(nightly_old)]
     let mut initialized = 0; // Extra initialized bytes from previous loop iteration
+    #[cfg(nightly_old)]
     let mut consecutive_short_reads = 0;
 
     loop {
@@ -134,6 +149,7 @@ pub fn default_read_to_end<R: Read + ?Sized>(
         spare = &mut spare[..buf_len];
         let mut read_buf: BorrowedBuf<'_> = spare.into();
 
+        #[cfg(nightly_old)]
         // SAFETY: These bytes were initialized but not filled in the previous loop
         unsafe {
             read_buf.set_init(initialized);
@@ -149,8 +165,10 @@ pub fn default_read_to_end<R: Read + ?Sized>(
             }
         };
 
+        #[cfg(nightly_old)]
         let unfilled_but_initialized = cursor.init_ref().len();
         let bytes_read = cursor.written();
+        #[cfg(nightly_old)]
         let was_fully_initialized = read_buf.init_len() == buf_len;
 
         // SAFETY: BorrowedBuf's invariants mean this much memory is initialized.
@@ -166,17 +184,22 @@ pub fn default_read_to_end<R: Read + ?Sized>(
             return Ok(buf.len() - start_len);
         }
 
+        #[cfg(nightly_old)]
         if bytes_read < buf_len {
             consecutive_short_reads += 1;
         } else {
             consecutive_short_reads = 0;
         }
 
-        // store how much was initialized but not filled
-        initialized = unfilled_but_initialized;
+        #[cfg(nightly_old)]
+        {
+            // store how much was initialized but not filled
+            initialized = unfilled_but_initialized;
+        }
 
         // Use heuristics to determine the max read size if no initial size hint was provided
         if size_hint.is_none() {
+            #[cfg(nightly_old)]
             // The reader is returning short reads but it doesn't call ensure_init().
             // In that case we no longer need to restrict read sizes to avoid
             // initialization costs.
