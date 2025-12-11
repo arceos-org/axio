@@ -30,7 +30,6 @@ impl Read for ShortReader {
     }
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -68,7 +67,6 @@ fn test_buffered_reader() {
     assert_eq!(reader.read(&mut buf).unwrap(), 0);
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_read_buf() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -118,7 +116,6 @@ fn test_buffered_reader_read_buf() {
     assert!(buf.filled().is_empty());
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_seek() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -134,7 +131,6 @@ fn test_buffered_reader_seek() {
     assert_eq!(reader.seek(SeekFrom::Current(-2)).ok(), Some(3));
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_seek_relative() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -152,7 +148,6 @@ fn test_buffered_reader_seek_relative() {
     assert_eq!(reader.fill_buf().ok(), Some(&[2, 3][..]));
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_stream_position() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -178,7 +173,6 @@ fn test_buffered_reader_stream_position() {
     assert_eq!(reader.buffer(), &[][..]);
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 #[cfg_attr(not(panic = "unwind"), ignore = "test requires unwinding support")]
 fn test_buffered_reader_stream_position_panic() {
@@ -196,7 +190,6 @@ fn test_buffered_reader_stream_position_panic() {
     assert!(result.is_err());
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_invalidated_after_read() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -215,7 +208,6 @@ fn test_buffered_reader_invalidated_after_read() {
     assert_eq!(buffer, [3, 4]);
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_invalidated_after_seek() {
     let inner: &[u8] = &[5, 6, 7, 0, 1, 2, 3, 4];
@@ -232,7 +224,6 @@ fn test_buffered_reader_invalidated_after_seek() {
     assert_eq!(buffer, [3, 4]);
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_seek_underflow() {
     // gimmick reader that yields its position modulo 256 for each byte
@@ -285,7 +276,6 @@ fn test_buffered_reader_seek_underflow() {
     assert_eq!(reader.get_ref().pos, expected);
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn test_buffered_reader_seek_underflow_discard_buffer_between_seeks() {
     // gimmick reader that returns Err after first seek

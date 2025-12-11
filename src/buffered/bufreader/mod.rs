@@ -7,7 +7,7 @@ use core::{fmt, io::BorrowedCursor};
 use self::buffer::Buffer;
 #[cfg(feature = "alloc")]
 use crate::Error;
-use crate::{BufRead, Read, Result, Seek, SeekFrom};
+use crate::{BufRead, Read, Result, Seek, SeekFrom, DEFAULT_BUF_SIZE};
 
 /// The `BufReader<R>` struct adds buffering to any reader.
 ///
@@ -18,21 +18,17 @@ pub struct BufReader<R: ?Sized> {
 }
 
 impl<R: Read> BufReader<R> {
-    /// Creates a new `BufReader<R>` with a default buffer capacity.
-    pub fn new(inner: R) -> BufReader<R> {
-        BufReader {
-            buf: Buffer::new(),
-            inner,
-        }
-    }
-
     /// Creates a new `BufReader<R>` with the specified buffer capacity.
-    #[cfg(feature = "alloc")]
     pub fn with_capacity(capacity: usize, inner: R) -> BufReader<R> {
         BufReader {
             buf: Buffer::with_capacity(capacity),
             inner,
         }
+    }
+
+    /// Creates a new `BufReader<R>` with a default buffer capacity.
+    pub fn new(inner: R) -> BufReader<R> {
+        BufReader::with_capacity(DEFAULT_BUF_SIZE, inner)
     }
 }
 

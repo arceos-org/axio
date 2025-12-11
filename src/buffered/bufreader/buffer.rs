@@ -2,7 +2,12 @@
 use alloc::boxed::Box;
 use core::{cmp, io::BorrowedBuf, mem::MaybeUninit};
 
-use crate::{Read, Result, DEFAULT_BUF_SIZE};
+#[cfg(not(feature = "alloc"))]
+use heapless::Vec;
+
+#[cfg(not(feature = "alloc"))]
+use crate::DEFAULT_BUF_SIZE;
+use crate::{Read, Result};
 
 pub struct Buffer {
     // The buffer.
@@ -10,7 +15,7 @@ pub struct Buffer {
     buf: Box<[MaybeUninit<u8>]>,
     // The buffer.
     #[cfg(not(feature = "alloc"))]
-    buf: [MaybeUninit<u8>; DEFAULT_BUF_SIZE],
+    buf: Vec<MaybeUninit<u8>, DEFAULT_BUF_SIZE, u16>,
 
     // The current seek offset into `buf`, must always be <= `filled`.
     pos: usize,
@@ -28,25 +33,16 @@ pub struct Buffer {
 
 impl Buffer {
     #[inline]
-    pub fn new() -> Self {
-        #[cfg(feature = "alloc")]
-        {
-            Self::with_capacity(DEFAULT_BUF_SIZE)
-        }
-        #[cfg(not(feature = "alloc"))]
-        Self {
-            buf: [const { MaybeUninit::uninit() }; DEFAULT_BUF_SIZE],
-            pos: 0,
-            filled: 0,
-            #[cfg(nightly_old)]
-            initialized: 0,
-        }
-    }
-
-    #[inline]
-    #[cfg(feature = "alloc")]
     pub fn with_capacity(capacity: usize) -> Self {
+        #[cfg(feature = "alloc")]
         let buf = Box::new_uninit_slice(capacity);
+        #[cfg(not(feature = "alloc"))]
+        let buf = {
+            let mut buf = Vec::new();
+            assert!(capacity <= buf.capacity());
+            unsafe { buf.set_len(capacity) };
+            buf
+        };
         Self {
             buf,
             pos: 0,

@@ -1,11 +1,12 @@
-#[cfg_attr(feature = "alloc", path = "buffer_vec.rs")]
-#[cfg_attr(not(feature = "alloc"), path = "buffer_array.rs")]
-mod buffer;
-
 use core::{fmt, mem::ManuallyDrop, ptr};
 
-use self::buffer::Buffer;
+use crate::DEFAULT_BUF_SIZE;
 use crate::{Error, IntoInnerError, Result, Seek, SeekFrom, Write};
+
+#[cfg(feature = "alloc")]
+type Buffer = alloc::vec::Vec<u8>;
+#[cfg(not(feature = "alloc"))]
+type Buffer = heapless::Vec<u8, DEFAULT_BUF_SIZE, u16>;
 
 /// Wraps a writer and buffers its output.
 ///
@@ -23,8 +24,12 @@ pub struct BufWriter<W: ?Sized + Write> {
 impl<W: Write> BufWriter<W> {
     /// Creates a new `BufWriter<W>` with a default buffer capacity.
     pub fn new(inner: W) -> BufWriter<W> {
+        #[cfg(feature = "alloc")]
+        let buf = Buffer::with_capacity(DEFAULT_BUF_SIZE);
+        #[cfg(not(feature = "alloc"))]
+        let buf = Buffer::new();
         BufWriter {
-            buf: Buffer::new(),
+            buf,
             panicked: false,
             inner,
         }
@@ -51,15 +56,63 @@ impl<W: Write> BufWriter<W> {
     pub fn into_inner(mut self) -> core::result::Result<W, IntoInnerError<BufWriter<W>>> {
         match self.flush_buf() {
             Err(e) => Err(IntoInnerError::new(self, e)),
-            Ok(()) => {
-                let mut this = ManuallyDrop::new(self);
-                // SAFETY: double-drops are prevented by putting `this` in a ManuallyDrop that is never dropped
-                unsafe {
-                    ptr::drop_in_place(&mut this.buf);
-                    Ok(ptr::read(&this.inner))
-                }
-            }
+            Ok(()) => Ok(self.into_parts().0),
         }
+    }
+
+    /// Disassembles this `BufWriter<W>`, returning the underlying writer, and any buffered but
+    /// unwritten data.
+    ///
+    /// If the underlying writer panicked, it is not known what portion of the data was written.
+    /// In this case, we return `WriterPanicked` for the buffered data (from which the buffer
+    /// contents can still be recovered).
+    ///
+    /// `into_parts` makes no attempt to flush data and cannot fail.
+    pub fn into_parts(self) -> (W, core::result::Result<Buffer, WriterPanicked>) {
+        let mut this = ManuallyDrop::new(self);
+        let buf = core::mem::take(&mut this.buf);
+        let buf = if !this.panicked {
+            Ok(buf)
+        } else {
+            Err(WriterPanicked { buf })
+        };
+
+        // SAFETY: double-drops are prevented by putting `this` in a ManuallyDrop that is never dropped
+        let inner = unsafe { ptr::read(&this.inner) };
+
+        (inner, buf)
+    }
+}
+
+/// Error returned for the buffered data from `BufWriter::into_parts`, when the underlying
+/// writer has previously panicked.  Contains the (possibly partly written) buffered data.
+pub struct WriterPanicked {
+    buf: Buffer,
+}
+
+impl WriterPanicked {
+    /// Returns the perhaps-unwritten data.  Some of this data may have been written by the
+    /// panicking call(s) to the underlying writer, so simply writing it again is not a good idea.
+    #[must_use = "`self` will be dropped if the result is not used"]
+    pub fn into_inner(self) -> Buffer {
+        self.buf
+    }
+}
+
+impl fmt::Display for WriterPanicked {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        "BufWriter inner writer panicked, what data remains unwritten is not known".fmt(f)
+    }
+}
+
+impl fmt::Debug for WriterPanicked {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("WriterPanicked")
+            .field(
+                "buffer",
+                &format_args!("{}/{}", self.buf.len(), self.buf.capacity()),
+            )
+            .finish()
     }
 }
 
@@ -130,7 +183,7 @@ impl<W: ?Sized + Write> BufWriter<W> {
         impl Drop for BufGuard<'_> {
             fn drop(&mut self) {
                 if self.written > 0 {
-                    self.buffer.consume(self.written);
+                    self.buffer.drain(..self.written);
                 }
             }
         }
@@ -153,11 +206,15 @@ impl<W: ?Sized + Write> BufWriter<W> {
         Ok(())
     }
 
+    fn spare_capacity(&self) -> usize {
+        self.buf.capacity() - self.buf.len()
+    }
+
     // SAFETY: Requires `buf.len() <= self.buf.capacity() - self.buf.len()`,
     // i.e., that input buffer length is less than or equal to spare capacity.
     #[inline]
     unsafe fn write_to_buffer_unchecked(&mut self, buf: &[u8]) {
-        debug_assert!(buf.len() <= self.buf.spare_capacity());
+        debug_assert!(buf.len() <= self.spare_capacity());
         let old_len = self.buf.len();
         let buf_len = buf.len();
         let src = buf.as_ptr();
@@ -172,7 +229,7 @@ impl<W: ?Sized + Write> BufWriter<W> {
     /// data. Writes as much as possible without exceeding capacity. Returns
     /// the number of bytes written.
     pub(crate) fn write_to_buf(&mut self, buf: &[u8]) -> usize {
-        let available = self.buf.spare_capacity();
+        let available = self.spare_capacity();
         let amt_to_buffer = available.min(buf.len());
 
         // SAFETY: `amt_to_buffer` is <= buffer's spare capacity by construction.
@@ -191,7 +248,7 @@ impl<W: ?Sized + Write> BufWriter<W> {
     #[cold]
     #[inline(never)]
     fn write_cold(&mut self, buf: &[u8]) -> Result<usize> {
-        if buf.len() > self.buf.spare_capacity() {
+        if buf.len() > self.spare_capacity() {
             self.flush_buf()?;
         }
 
@@ -233,7 +290,7 @@ impl<W: ?Sized + Write> BufWriter<W> {
         // round trips through the buffer in the event of a series of partial
         // writes in some circumstances.
 
-        if buf.len() > self.buf.spare_capacity() {
+        if buf.len() > self.spare_capacity() {
             self.flush_buf()?;
         }
 
@@ -280,7 +337,7 @@ impl<W: ?Sized + Write> Write for BufWriter<W> {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
         // Use < instead of <= to avoid a needless trip through the buffer in some cases.
         // See `write_cold` for details.
-        if buf.len() < self.buf.spare_capacity() {
+        if buf.len() < self.spare_capacity() {
             // SAFETY: safe by above conditional.
             unsafe {
                 self.write_to_buffer_unchecked(buf);
@@ -296,7 +353,7 @@ impl<W: ?Sized + Write> Write for BufWriter<W> {
     fn write_all(&mut self, buf: &[u8]) -> Result<()> {
         // Use < instead of <= to avoid a needless trip through the buffer in some cases.
         // See `write_all_cold` for details.
-        if buf.len() < self.buf.spare_capacity() {
+        if buf.len() < self.spare_capacity() {
             // SAFETY: safe by above conditional.
             unsafe {
                 self.write_to_buffer_unchecked(buf);
