@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 use core::io::BorrowedCursor;
 
-use crate::{BufRead, Read, Result};
+use crate::{BufRead, IoBuf, Read, Result};
 
 /// Adapter to chain together two readers.
 ///
@@ -133,4 +133,11 @@ impl<T: BufRead, U: BufRead> BufRead for Chain<T, U> {
 
     // We don't override `read_line` here because an UTF-8 sequence could be
     // split between the two parts of the chain
+}
+
+impl<T: IoBuf, U: IoBuf> IoBuf for Chain<T, U> {
+    #[inline]
+    fn remaining(&self) -> usize {
+        self.first.remaining() + self.second.remaining()
+    }
 }

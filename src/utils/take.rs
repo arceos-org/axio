@@ -3,7 +3,7 @@ use core::{
     io::{BorrowedBuf, BorrowedCursor},
 };
 
-use crate::{BufRead, Error, Read, Result, Seek, SeekFrom};
+use crate::{BufRead, Error, IoBuf, Read, Result, Seek, SeekFrom};
 
 /// Reader adapter which limits the bytes read from an underlying reader.
 ///
@@ -212,5 +212,11 @@ impl<T: Seek> Seek for Take<T> {
         self.inner.seek_relative(offset)?;
         self.limit = self.limit.wrapping_sub(offset as u64);
         Ok(())
+    }
+}
+
+impl<T: IoBuf> IoBuf for Take<T> {
+    fn remaining(&self) -> usize {
+        cmp::min(self.inner.remaining(), self.limit as usize)
     }
 }

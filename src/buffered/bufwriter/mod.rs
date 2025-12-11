@@ -1,6 +1,6 @@
 use core::{fmt, mem::ManuallyDrop, ptr};
 
-use crate::{DEFAULT_BUF_SIZE, Error, IntoInnerError, Result, Seek, SeekFrom, Write};
+use crate::{DEFAULT_BUF_SIZE, Error, IntoInnerError, IoBuf, Result, Seek, SeekFrom, Write};
 
 #[cfg(feature = "alloc")]
 type Buffer = alloc::vec::Vec<u8>;
@@ -386,5 +386,12 @@ impl<W: ?Sized + Write> Drop for BufWriter<W> {
             // dtors should not panic, so we ignore a failed flush
             let _r = self.flush_buf();
         }
+    }
+}
+
+impl<W: ?Sized + Write + IoBuf> IoBuf for BufWriter<W> {
+    #[inline]
+    fn remaining(&self) -> usize {
+        self.inner.remaining().saturating_sub(self.buf.len())
     }
 }

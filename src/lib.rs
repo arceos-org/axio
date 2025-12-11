@@ -17,13 +17,14 @@ pub use axerrno::{AxError as Error, AxErrorKind as ErrorKind, AxResult as Result
 pub const DEFAULT_BUF_SIZE: usize = 1024 * 2;
 
 mod buffered;
+mod iobuf;
 pub mod prelude;
 mod read;
 mod seek;
 mod utils;
 mod write;
 
-pub use self::{buffered::*, read::*, seek::*, utils::*, write::*};
+pub use self::{buffered::*, iobuf::*, read::*, seek::*, utils::*, write::*};
 
 /// I/O poll results.
 #[derive(Debug, Default, Clone, Copy)]

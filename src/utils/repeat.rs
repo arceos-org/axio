@@ -2,7 +2,7 @@
 use alloc::{string::String, vec::Vec};
 use core::{fmt, io::BorrowedCursor};
 
-use crate::{Read, Result};
+use crate::{IoBuf, Read, Result};
 
 /// A reader which yields one byte over and over and over and over and over and...
 ///
@@ -71,5 +71,11 @@ impl Read for Repeat {
 impl fmt::Debug for Repeat {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Repeat").finish_non_exhaustive()
+    }
+}
+
+impl IoBuf for Repeat {
+    fn remaining(&self) -> usize {
+        usize::MAX
     }
 }

@@ -3,7 +3,7 @@ mod shim;
 use core::fmt;
 
 use self::shim::LineWriterShim;
-use crate::{BufWriter, IntoInnerError, Result, Write};
+use crate::{BufWriter, IntoInnerError, IoBuf, Result, Write};
 
 /// Wraps a writer and buffers output to it, flushing whenever a newline
 /// (`0x0a`, `'\n'`) is detected.
@@ -99,5 +99,12 @@ impl<W: ?Sized + Write + fmt::Debug> fmt::Debug for LineWriter<W> {
                 &format_args!("{}/{}", self.inner.buffer().len(), self.inner.capacity()),
             )
             .finish_non_exhaustive()
+    }
+}
+
+impl<W: ?Sized + Write + IoBuf> IoBuf for LineWriter<W> {
+    #[inline]
+    fn remaining(&self) -> usize {
+        self.inner.remaining()
     }
 }

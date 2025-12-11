@@ -7,7 +7,7 @@ use core::{fmt, io::BorrowedCursor};
 use self::buffer::Buffer;
 #[cfg(feature = "alloc")]
 use crate::Error;
-use crate::{BufRead, DEFAULT_BUF_SIZE, Read, Result, Seek, SeekFrom};
+use crate::{BufRead, DEFAULT_BUF_SIZE, IoBuf, Read, Result, Seek, SeekFrom};
 
 /// The `BufReader<R>` struct adds buffering to any reader.
 ///
@@ -336,5 +336,12 @@ impl<R: ?Sized + Seek> Seek for BufReader<R> {
         }
 
         self.seek(SeekFrom::Current(offset)).map(drop)
+    }
+}
+
+impl<R: ?Sized + IoBuf> IoBuf for BufReader<R> {
+    #[inline]
+    fn remaining(&self) -> usize {
+        self.inner.remaining() + self.buf.filled() - self.buf.pos()
     }
 }

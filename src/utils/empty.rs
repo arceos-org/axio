@@ -2,7 +2,7 @@
 use alloc::{string::String, vec::Vec};
 use core::{fmt, io::BorrowedCursor};
 
-use crate::{BufRead, Error, Read, Result, Seek, SeekFrom, Write};
+use crate::{BufRead, Error, IoBuf, Read, Result, Seek, SeekFrom, Write};
 
 /// `Empty` ignores any data written via [`Write`], and will always be empty
 /// (returning zero bytes) when read via [`Read`].
@@ -153,5 +153,12 @@ impl Write for &Empty {
     #[inline]
     fn flush(&mut self) -> Result<()> {
         Ok(())
+    }
+}
+
+impl IoBuf for Empty {
+    #[inline]
+    fn remaining(&self) -> usize {
+        0
     }
 }
