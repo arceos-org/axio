@@ -12,7 +12,6 @@ keywords = ["arceos", "io", "no-std"]
 categories = ["no-std"]
 
 [features]
-default = []
 alloc = []
 
 [dependencies]
