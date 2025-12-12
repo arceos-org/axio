@@ -61,12 +61,6 @@ impl<R: ?Sized> BufReader<R> {
         self.buf.capacity()
     }
 
-    #[cfg(nightly_old)]
-    #[doc(hidden)]
-    pub fn initialized(&self) -> usize {
-        self.buf.initialized()
-    }
-
     /// Unwraps this `BufReader<R>`, returning the underlying reader.
     ///
     /// Note that any leftover data in the internal buffer is lost. Therefore,

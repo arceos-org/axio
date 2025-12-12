@@ -41,14 +41,7 @@ impl Read for Repeat {
         // SAFETY: No uninit bytes are being written.
         unsafe { buf.as_mut() }.write_filled(self.byte);
         // SAFETY: the entire unfilled portion of buf has been initialized.
-        #[cfg(nightly_old)]
-        unsafe {
-            buf.advance_unchecked(buf.capacity())
-        };
-        #[cfg(not(nightly_old))]
-        unsafe {
-            buf.advance(buf.capacity())
-        };
+        unsafe { buf.advance(buf.capacity()) };
         Ok(())
     }
 

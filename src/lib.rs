@@ -4,9 +4,7 @@
 #![feature(doc_cfg)]
 #![feature(core_io_borrowed_buf)]
 #![feature(maybe_uninit_fill)]
-#![cfg_attr(nightly_old, feature(maybe_uninit_slice))]
 #![feature(min_specialization)]
-#![cfg_attr(nightly_old, feature(unsigned_signed_diff))]
 #![warn(missing_docs)]
 
 #[cfg(feature = "alloc")]
