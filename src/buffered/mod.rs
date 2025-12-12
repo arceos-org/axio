@@ -4,7 +4,11 @@ mod linewriter;
 
 use core::fmt;
 
-pub use self::{bufreader::BufReader, bufwriter::BufWriter, linewriter::LineWriter};
+pub use self::{
+    bufreader::BufReader,
+    bufwriter::{BufWriter, WriterPanicked},
+    linewriter::LineWriter,
+};
 use crate::Error;
 
 /// An error returned by [`BufWriter::into_inner`] which combines an error that
