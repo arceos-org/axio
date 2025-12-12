@@ -25,7 +25,6 @@ mod write;
 pub use self::{buffered::*, read::*, seek::*, utils::*, write::*};
 
 /// I/O poll results.
-#[deprecated]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PollState {
     /// Object can be read now.
