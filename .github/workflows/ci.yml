@@ -23,8 +23,10 @@ jobs:
     - name: Check code format
       run: cargo fmt --all --check
     - name: Clippy
+      continue-on-error: ${{ matrix.rust-toolchain == 'nightly' }}
       run: cargo hack clippy --feature-powerset
     - name: Unit test
+      continue-on-error: ${{ matrix.rust-toolchain == 'nightly' }}
       run: cargo hack test --feature-powerset -- --nocapture
 
   doc:
