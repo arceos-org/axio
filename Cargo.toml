@@ -17,3 +17,6 @@ default = []
 
 [dependencies]
 axerrno = "0.1"
+
+[build-dependencies]
+autocfg = "1"
