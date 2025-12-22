@@ -342,7 +342,7 @@ pub trait BufRead: Read {
 
     /// Marks the given `amount` of additional bytes from the internal buffer as having been read.
     /// Subsequent calls to `read` only return bytes that have not been marked as read.
-    fn consume(&mut self, amt: usize);
+    fn consume(&mut self, amount: usize);
 
     /// Checks if there is any data left to be `read`.
     fn has_data_left(&mut self) -> Result<bool> {
