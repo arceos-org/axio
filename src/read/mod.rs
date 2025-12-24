@@ -278,7 +278,7 @@ pub trait Read {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize>;
 
     /// Read the exact number of bytes required to fill `buf`.
-    fn read_exact(&mut self, buf: &mut [u8]) -> Result {
+    fn read_exact(&mut self, buf: &mut [u8]) -> Result<()> {
         default_read_exact(self, buf)
     }
 

@@ -58,10 +58,10 @@ pub trait Write {
 
     /// Flush this output stream, ensuring that all intermediately buffered
     /// contents reach their destination.
-    fn flush(&mut self) -> Result;
+    fn flush(&mut self) -> Result<()>;
 
     /// Attempts to write an entire buffer into this writer.
-    fn write_all(&mut self, mut buf: &[u8]) -> Result {
+    fn write_all(&mut self, mut buf: &[u8]) -> Result<()> {
         while !buf.is_empty() {
             match self.write(buf) {
                 Ok(0) => return Err(Error::WriteZero),
