@@ -1,7 +1,7 @@
-use crate::{BufRead, Read, Result};
-
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
+
+use crate::{BufRead, Read, Result};
 
 const DEFAULT_BUF_SIZE: usize = 1024;
 
