@@ -337,7 +337,8 @@ pub fn read_to_string<R: Read>(mut reader: R) -> Result<String> {
 ///
 /// See [`std::io::BufRead`] for more details.
 pub trait BufRead: Read {
-    /// Returns the contents of the internal buffer, filling it with more data, via `Read` methods, if empty.
+    /// Returns the contents of the internal buffer, filling it with more data, via `Read` methods,
+    /// if empty.
     fn fill_buf(&mut self) -> Result<&[u8]>;
 
     /// Marks the given `amount` of additional bytes from the internal buffer as having been read.
