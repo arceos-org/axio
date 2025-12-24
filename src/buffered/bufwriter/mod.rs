@@ -139,6 +139,10 @@ impl<W: ?Sized + Write> BufWriter<W> {
         self.buf.capacity()
     }
 
+    pub(crate) fn buffer_mut(&mut self) -> &mut Buffer {
+        &mut self.buf
+    }
+
     /// Send data in our local buffer into the inner writer, looping as
     /// necessary until either it's all been sent or an error occurs.
     ///
