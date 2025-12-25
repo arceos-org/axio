@@ -1,6 +1,6 @@
 use core::{fmt, mem::ManuallyDrop, ptr};
 
-use crate::{DEFAULT_BUF_SIZE, Error, IntoInnerError, IoBuf, Result, Seek, SeekFrom, Write};
+use crate::{DEFAULT_BUF_SIZE, Error, IntoInnerError, IoBufMut, Result, Seek, SeekFrom, Write};
 
 #[cfg(feature = "alloc")]
 type Buffer = alloc::vec::Vec<u8>;
@@ -389,9 +389,9 @@ impl<W: ?Sized + Write> Drop for BufWriter<W> {
     }
 }
 
-impl<W: ?Sized + Write + IoBuf> IoBuf for BufWriter<W> {
+impl<W: ?Sized + Write + IoBufMut> IoBufMut for BufWriter<W> {
     #[inline]
-    fn remaining(&self) -> usize {
-        self.inner.remaining().saturating_sub(self.buf.len())
+    fn remaining_mut(&self) -> usize {
+        self.inner.remaining_mut().saturating_sub(self.buf.len())
     }
 }

@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{IoBuf, Result, Write};
+use crate::{IoBufMut, Result, Write};
 
 /// A writer which will move data into the void.
 ///
@@ -60,8 +60,8 @@ impl Write for &Sink {
     }
 }
 
-impl IoBuf for Sink {
-    fn remaining(&self) -> usize {
+impl IoBufMut for Sink {
+    fn remaining_mut(&self) -> usize {
         usize::MAX
     }
 }

@@ -2,7 +2,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use core::{cmp, io::BorrowedCursor};
 
-use crate::{BufRead, Error, IoBuf, Read, Result, Seek, SeekFrom, Write};
+use crate::{BufRead, Error, IoBuf, IoBufMut, Read, Result, Seek, SeekFrom, Write};
 
 /// A `Cursor` wraps an in-memory buffer and provides it with a
 /// [`Seek`] implementation.
@@ -388,12 +388,16 @@ impl<const N: usize> Write for Cursor<[u8; N]> {
     }
 }
 
-impl<T> IoBuf for Cursor<T>
-where
-    T: AsRef<[u8]>,
-{
+impl<T: IoBuf> IoBuf for Cursor<T> {
     #[inline]
     fn remaining(&self) -> usize {
-        Cursor::split(self).1.len()
+        self.inner.remaining() - (self.pos as usize)
+    }
+}
+
+impl<T: IoBufMut> IoBufMut for Cursor<T> {
+    #[inline]
+    fn remaining_mut(&self) -> usize {
+        self.inner.remaining_mut() - (self.pos as usize)
     }
 }

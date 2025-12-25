@@ -3,11 +3,7 @@ mod shim;
 use core::fmt;
 
 use self::shim::LineWriterShim;
-use crate::{BufWriter, IntoInnerError, IoBuf, Result, Write};
-
-/// Wraps a writer and buffers output to it, flushing whenever a newline
-/// (`0x0a`, `'\n'`) is detected.
-///
+use crate::{BufWriter, IntoInnerError, IoBufMut, Result, Write};
 /// The [`BufWriter`] struct wraps a writer and buffers its output.
 /// But it only does this batched write when it goes out of scope, or when the
 /// internal buffer is full. Sometimes, you'd prefer to write each line as it's
@@ -102,9 +98,9 @@ impl<W: ?Sized + Write + fmt::Debug> fmt::Debug for LineWriter<W> {
     }
 }
 
-impl<W: ?Sized + Write + IoBuf> IoBuf for LineWriter<W> {
+impl<W: ?Sized + Write + IoBufMut> IoBufMut for LineWriter<W> {
     #[inline]
-    fn remaining(&self) -> usize {
-        self.inner.remaining()
+    fn remaining_mut(&self) -> usize {
+        self.inner.remaining_mut()
     }
 }

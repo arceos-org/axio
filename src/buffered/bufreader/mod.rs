@@ -83,6 +83,11 @@ impl<R: ?Sized> BufReader<R> {
     pub(crate) fn discard_buffer(&mut self) {
         self.buf.discard_buffer()
     }
+
+    #[inline]
+    pub(crate) fn consume(&mut self, amt: usize) {
+        self.buf.consume(amt)
+    }
 }
 
 impl<R: Read + ?Sized> BufReader<R> {

@@ -9,10 +9,10 @@ fn test_slice() {
     assert_eq!(buf.remaining(), 3);
 
     let mut buf: &mut [u8] = &mut [0; 10];
-    assert_eq!(buf.remaining(), 10);
+    assert_eq!(buf.remaining_mut(), 10);
 
     buf.write(&[1, 2, 3, 4, 5]).unwrap();
-    assert_eq!(buf.remaining(), 5);
+    assert_eq!(buf.remaining_mut(), 5);
 }
 
 #[cfg(feature = "alloc")]
@@ -20,12 +20,14 @@ fn test_slice() {
 fn test_vec() {
     let buf: Vec<u8> = vec![1, 2, 3, 4, 5];
     assert_eq!(buf.remaining(), 5);
+    assert_eq!(buf.remaining_mut(), (isize::MAX as usize) - 5);
 
     let buf: &mut Vec<u8> = &mut vec![0; 10];
     assert_eq!(buf.remaining(), 10);
 
     let buf: Box<Vec<u8>> = Box::new(vec![1, 2, 3]);
     assert_eq!(buf.remaining(), 3);
+    assert_eq!(buf.remaining_mut(), (isize::MAX as usize) - 3);
 }
 
 #[test]
@@ -65,9 +67,13 @@ fn test_cursor() {
 fn test_empty() {
     let mut empty = empty();
     assert_eq!(empty.remaining(), 0);
+    assert_eq!(empty.remaining_mut(), usize::MAX);
 
     empty.read(&mut [0; 10]).unwrap();
     assert_eq!(empty.remaining(), 0);
+
+    empty.write(&[1, 2, 3]).unwrap();
+    assert_eq!(empty.remaining_mut(), usize::MAX);
 }
 
 #[test]
@@ -82,10 +88,10 @@ fn test_repeat() {
 #[test]
 fn test_sink() {
     let mut sink = sink();
-    assert_eq!(sink.remaining(), usize::MAX);
+    assert_eq!(sink.remaining_mut(), usize::MAX);
 
     sink.write(&[1, 2, 3, 4, 5]).unwrap();
-    assert_eq!(sink.remaining(), usize::MAX);
+    assert_eq!(sink.remaining_mut(), usize::MAX);
 }
 
 #[test]
@@ -122,11 +128,94 @@ fn test_bufreader() {
 fn test_bufwriter() {
     let data: &mut [u8] = &mut [0; 5];
     let mut writer = BufWriter::new(data);
-    assert_eq!(writer.remaining(), 5);
+    assert_eq!(writer.remaining_mut(), 5);
 
     writer.write(&[1, 2, 3]).unwrap();
-    assert_eq!(writer.remaining(), 2);
+    assert_eq!(writer.remaining_mut(), 2);
 
     writer.write(&[4, 5, 6]).unwrap();
-    assert_eq!(writer.remaining(), 0);
+    assert_eq!(writer.remaining_mut(), 0);
+}
+
+#[test]
+fn test_strict_write_to() {
+    struct StrictWriter {
+        rest: usize,
+    }
+
+    impl Write for StrictWriter {
+        fn write(&mut self, buf: &[u8]) -> axio::Result<usize> {
+            assert!(buf.len() <= self.rest);
+            let to_write = buf.len();
+            self.rest -= to_write;
+            Ok(to_write)
+        }
+
+        fn flush(&mut self) -> axio::Result<()> {
+            Ok(())
+        }
+    }
+
+    let mut writer = StrictWriter { rest: 5 };
+    let mut buf: &[u8] = &[0; 5];
+
+    assert_eq!(buf.write_to(&mut writer).unwrap(), 5);
+
+    std::panic::catch_unwind(move || {
+        let mut writer = StrictWriter { rest: 3 };
+        let mut buf: &[u8] = &[0; 5];
+        buf.write_to(&mut writer).unwrap();
+    })
+    .unwrap_err();
+}
+
+#[test]
+fn test_strict_read_from() {
+    struct StrictReader {
+        rest: usize,
+    }
+
+    impl Read for StrictReader {
+        fn read(&mut self, buf: &mut [u8]) -> axio::Result<usize> {
+            assert!(buf.len() <= self.rest);
+            let to_read = buf.len();
+            self.rest -= to_read;
+            for b in &mut buf[..to_read] {
+                *b = 0;
+            }
+            Ok(to_read)
+        }
+    }
+
+    let mut reader = StrictReader { rest: 5 };
+    let mut buf: &mut [u8] = &mut [0; 5];
+
+    assert_eq!(buf.read_from(&mut reader).unwrap(), 5);
+
+    std::panic::catch_unwind(move || {
+        let mut reader = StrictReader { rest: 3 };
+        let mut buf: &mut [u8] = &mut [0; 5];
+        buf.read_from(&mut reader).unwrap();
+    })
+    .unwrap_err();
+}
+
+#[test]
+fn test_small_read_from() {
+    struct SmallReader;
+
+    impl Read for SmallReader {
+        fn read(&mut self, buf: &mut [u8]) -> axio::Result<usize> {
+            let to_read = std::cmp::min(buf.len(), 3);
+            for b in &mut buf[..to_read] {
+                *b = 0;
+            }
+            Ok(to_read)
+        }
+    }
+
+    let mut reader = SmallReader;
+    let mut buf: &mut [u8] = &mut [0; 5];
+
+    assert_eq!(buf.read_from(&mut reader).unwrap(), 3);
 }
