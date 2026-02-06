@@ -14,6 +14,7 @@ pub fn default_read_exact<R: Read + ?Sized>(this: &mut R, mut buf: &mut [u8]) ->
             Ok(n) => {
                 buf = &mut buf[n..];
             }
+            #[cfg(feature = "continue-on-interrupt")]
             Err(e) if e.canonicalize() == Error::Interrupted => continue,
             Err(e) => return Err(e),
         }
@@ -57,6 +58,7 @@ pub fn default_read_buf_exact<R: Read + ?Sized>(
         let prev_written = cursor.written();
         match this.read_buf(cursor.reborrow()) {
             Ok(()) => {}
+            #[cfg(feature = "continue-on-interrupt")]
             Err(e) if e.canonicalize() == Error::Interrupted => continue,
             Err(e) => return Err(e),
         }
@@ -96,6 +98,7 @@ pub fn default_read_to_end<R: Read + ?Sized>(
     fn small_probe_read<R: Read + ?Sized>(r: &mut R, buf: &mut Vec<u8>) -> Result<usize> {
         let mut probe = [0u8; PROBE_SIZE];
 
+        #[allow(clippy::never_loop)]
         loop {
             match r.read(&mut probe) {
                 Ok(n) => {
@@ -104,6 +107,7 @@ pub fn default_read_to_end<R: Read + ?Sized>(
                     buf.extend_from_slice(&probe[..n]);
                     return Ok(n);
                 }
+                #[cfg(feature = "continue-on-interrupt")]
                 Err(e) if e.canonicalize() == Error::Interrupted => continue,
                 Err(e) => return Err(e),
             }
@@ -153,8 +157,10 @@ pub fn default_read_to_end<R: Read + ?Sized>(
         }
 
         let mut cursor = read_buf.unfilled();
+        #[allow(clippy::never_loop)]
         let result = loop {
             match r.read_buf(cursor.reborrow()) {
+                #[cfg(feature = "continue-on-interrupt")]
                 Err(e) if e.canonicalize() == Error::Interrupted => continue,
                 // Do not stop now in case of error: we might have received both data
                 // and an error
