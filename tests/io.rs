@@ -448,7 +448,7 @@ struct ExampleHugeRangeOfZeroes {
 
 impl Read for ExampleHugeRangeOfZeroes {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        let max = buf.len().min(usize::MAX);
+        let max = buf.len();
         for (i, e) in buf.iter_mut().enumerate().take(max) {
             if self.position == u64::MAX {
                 return Ok(i);
