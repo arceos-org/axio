@@ -139,6 +139,10 @@ impl<W: ?Sized + Write> BufWriter<W> {
         self.buf.capacity()
     }
 
+    pub(crate) fn buffer_mut(&mut self) -> &mut Buffer {
+        &mut self.buf
+    }
+
     /// Send data in our local buffer into the inner writer, looping as
     /// necessary until either it's all been sent or an error occurs.
     ///
@@ -195,6 +199,7 @@ impl<W: ?Sized + Write> BufWriter<W> {
                     return Err(Error::WriteZero);
                 }
                 Ok(n) => guard.consume(n),
+                #[cfg(feature = "continue-on-interrupt")]
                 Err(ref e) if e.canonicalize() == Error::Interrupted => {}
                 Err(e) => return Err(e),
             }
