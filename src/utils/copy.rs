@@ -2,7 +2,9 @@
 use alloc::{collections::vec_deque::VecDeque, vec::Vec};
 use core::{io::BorrowedBuf, mem::MaybeUninit};
 
-use crate::{BufReader, BufWriter, DEFAULT_BUF_SIZE, Error, Read, Result, Write};
+#[cfg(feature = "continue-on-interrupt")]
+use crate::Error;
+use crate::{BufReader, BufWriter, DEFAULT_BUF_SIZE, Read, Result, Write};
 
 /// Copies the entire contents of a reader into a writer.
 ///
@@ -43,6 +45,7 @@ where
     loop {
         match reader.read_buf(buf.unfilled()) {
             Ok(()) => {}
+            #[cfg(feature = "continue-on-interrupt")]
             Err(e) if e.canonicalize() == Error::Interrupted => continue,
             Err(e) => return Err(e),
         };
@@ -135,6 +138,7 @@ where
             // from adding I: Read
             match self.read(&mut []) {
                 Ok(_) => {}
+                #[cfg(feature = "continue-on-interrupt")]
                 Err(e) if e.canonicalize() == Error::Interrupted => continue,
                 Err(e) => return Err(e),
             }
@@ -234,6 +238,7 @@ impl<I: Write + ?Sized> BufferedWriterSpec for BufWriter<I> {
                         // would do This will occur if the reader returns
                         // short reads
                     }
+                    #[cfg(feature = "continue-on-interrupt")]
                     Err(ref e) if e.canonicalize() == Error::Interrupted => {}
                     Err(e) => return Err(e),
                 }

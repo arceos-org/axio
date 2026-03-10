@@ -199,6 +199,7 @@ impl<W: ?Sized + Write> BufWriter<W> {
                     return Err(Error::WriteZero);
                 }
                 Ok(n) => guard.consume(n),
+                #[cfg(feature = "continue-on-interrupt")]
                 Err(ref e) if e.canonicalize() == Error::Interrupted => {}
                 Err(e) => return Err(e),
             }
