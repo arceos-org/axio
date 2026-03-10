@@ -238,7 +238,9 @@ fn reserve_and_pad(pos_mut: &mut u64, vec: &mut Vec<u8>, buf_len: usize) -> Resu
         // to have room for (pos+buf_len) bytes. Reserve allocates
         // based on additional elements from the length, so we need to
         // reserve the difference
-        vec.reserve(desired_cap - vec.len());
+        // Note: std implementation calls `reserve` here without error handling.
+        vec.try_reserve(desired_cap - vec.len())
+            .map_err(|_| Error::NoMemory)?;
     }
     // Pad if pos is above the current len.
     if pos > vec.len() {
